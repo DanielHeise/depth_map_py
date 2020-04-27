@@ -28,8 +28,8 @@
 #    - kernel size now bounded by image size[TODO]
 #    - consolidated image file picking code[TODO]
 #    - minor code clean up[TODO]
-#    - minor bug fixes[TODO]
-#      -- disparities slider starting at 64, should be 16[TODO]
+#    - minor bug fixes[DONE]
+#      -- disparities slider starting at 64, should be 16[DONE]
 #      -- program crash when scaling was set to 100 using the mouse drag[DONE]
 #    - change module importing to improve code readability[DONE]
 #  v0.0.1:
@@ -116,7 +116,7 @@ class MainWindow(QtWidgets.QMainWindow):
     # sliders
     self.sliderDisparities = QtWidgets.QSlider(QtCore.Qt.Horizontal)
     self.sliderDisparities.setRange(Disparities.NOMINAL,Disparities.MAX)
-    self.sliderDisparities.setSliderPosition(Disparities.NOMINAL)
+    self.sliderDisparities.setSliderPosition(self.disparities)
     self.sliderDisparities.setSingleStep(Disparities.NOMINAL)
     self.sliderDisparities.setPageStep(op.mul(Disparities.NOMINAL,3))
     self.sliderDisparities.setTickPosition(QtWidgets.QSlider.TicksBelow)
