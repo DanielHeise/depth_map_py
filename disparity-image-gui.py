@@ -31,7 +31,7 @@
 #    - minor bug fixes[TODO]
 #      -- disparities slider starting at 64, should be 16[TODO]
 #      -- program crash when scaling was set to 100 using the mouse drag[DONE]
-#    - change module importing to improve code readability [TODO]
+#    - change module importing to improve code readability[DONE]
 #  v0.0.1:
 #    - added string literals
 #    - both images are now scaled to be of equal size
@@ -42,14 +42,13 @@
 # --------------------------------
 import sys
 import math
+import enum
 import operator as op
 import numpy as np
 import cv2 as cv
-import enum
-import PyQt5 as qt
-#from PyQt5.QtCore import *
-#from PyQt5.QtWidgets import *
-#from PyQt5.QtGui import *
+from PyQt5 import QtCore
+from PyQt5 import QtWidgets
+from PyQt5 import QtGui
 
 # enums
 class Dimension(enum.IntEnum):
@@ -86,9 +85,9 @@ literals = {
   "NO_IMG_LIT":         "No image chosen",
   "SCALING_LIT":        "Scale Factor: "
 }
-GUI_VERSION = "v0.0.1"
+GUI_VERSION = "v0.0.2.a"
 
-class MainWindow(QMainWindow):
+class MainWindow(QtWidgets.QMainWindow):
   def __init__(self):
     self.disparities = op.mul(Disparities.NOMINAL,4)    # number of disparities; used by opencv methods
     self.kernel = op.mul(Kernel.MIN,3)                  # block/kernel size; used by opencv methods
@@ -96,82 +95,82 @@ class MainWindow(QMainWindow):
     self.scalingFactor = op.mul(Scaling.NOMINAL,5)      # factor to scale the orignal image(s) by
     self.photos = {}                                    # container for photo filepaths
 
-    QMainWindow.__init__(self)
+    QtWidgets.QMainWindow.__init__(self)
     # window prep - TODO: change from VBox to Grid layout
-    self.setWindowIcon(self.style().standardIcon(qt.QStyle.SP_TitleBarMenuButton))
+    self.setWindowIcon(self.style().standardIcon(QtWidgets.QStyle.SP_TitleBarMenuButton))
     #self.setGeometry(300,100,300,200)
     self.setWindowTitle(literals["WINDOW_TITLE_LIT"])
-    mainWidget = qt.QWidget()
-    layout = qt.QVBoxLayout()
+    mainWidget = QtWidgets.QWidget()
+    layout = QtWidgets.QVBoxLayout()
     # ensure the mainwindow and all element resize as window shrinks
-    layout.setSizeConstraint(qt.QLayout.SetFixedSize)
+    layout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
     self.setFixedSize(layout.sizeHint())
     # buttons
-    self.getLeftFile = qt.QPushButton(self)
+    self.getLeftFile = QtWidgets.QPushButton(self)
     self.getLeftFile.setText(literals["PICK_LT_IMG_LIT"])
     self.getLeftFile.clicked.connect(self.findLFile)
 
-    self.getRightFile = qt.QPushButton(self)
+    self.getRightFile = QtWidgets.QPushButton(self)
     self.getRightFile.setText(literals["PICK_RT_IMG_LIT"])
     self.getRightFile.clicked.connect(self.findRFile)
     # sliders
-    self.sliderDisparities = qt.QSlider(Qt.Horizontal)
+    self.sliderDisparities = QtWidgets.QSlider(QtCore.Qt.Horizontal)
     self.sliderDisparities.setRange(Disparities.NOMINAL,Disparities.MAX)
     self.sliderDisparities.setSliderPosition(Disparities.NOMINAL)
     self.sliderDisparities.setSingleStep(Disparities.NOMINAL)
     self.sliderDisparities.setPageStep(op.mul(Disparities.NOMINAL,3))
-    self.sliderDisparities.setTickPosition(QSlider.TicksBelow)
+    self.sliderDisparities.setTickPosition(QtWidgets.QSlider.TicksBelow)
     self.sliderDisparities.setTickInterval(Disparities.NOMINAL)
     self.sliderDisparities.actionTriggered.connect(self.checkActionDisp)
     self.sliderDisparities.sliderReleased.connect(self.snapSliderDisp)
 
-    self.sliderKernel = qt.QSlider(Qt.Horizontal)
+    self.sliderKernel = QtWidgets.QSlider(QtCore.Qt.Horizontal)
     self.sliderKernel.setRange(Kernel.MIN,Kernel.MAX)
     self.sliderKernel.setSliderPosition(op.mul(Kernel.MIN,3))
     self.sliderKernel.setSingleStep(Kernel.NOMINAL)
     self.sliderKernel.setPageStep(op.mul(Kernel.NOMINAL,10))
-    self.sliderKernel.setTickPosition(QSlider.TicksBelow)
+    self.sliderKernel.setTickPosition(QtWidgets.QSlider.TicksBelow)
     self.sliderKernel.setTickInterval(Kernel.NOMINAL)
     self.sliderKernel.actionTriggered.connect(self.checkActionKernel)
     self.sliderKernel.sliderReleased.connect(self.snapSliderKernel)
 
-    self.sliderOpacity = qt.QSlider(Qt.Horizontal)
+    self.sliderOpacity = QtWidgets.QSlider(QtCore.Qt.Horizontal)
     self.sliderOpacity.setRange(Opacity.MIN,Opacity.MAX)
     self.sliderOpacity.setSliderPosition(op.truediv(Opacity.MAX,2))
     self.sliderOpacity.setSingleStep(Opacity.NOMINAL)
     self.sliderOpacity.setPageStep(op.mul(Opacity.NOMINAL,5))
-    self.sliderOpacity.setTickPosition(QSlider.TicksBelow)
+    self.sliderOpacity.setTickPosition(QtWidgets.QSlider.TicksBelow)
     self.sliderOpacity.setTickInterval(op.mul(Opacity.NOMINAL,5))
     self.sliderOpacity.actionTriggered.connect(self.checkActionOpacity)
     self.sliderOpacity.sliderReleased.connect(self.snapSliderOpacity)
 
-    self.sliderScaling = qt.QSlider(Qt.Horizontal)
+    self.sliderScaling = QtWidgets.QSlider(QtCore.Qt.Horizontal)
     self.sliderScaling.setRange(Scaling.MIN,Scaling.MAX)
     self.sliderScaling.setSliderPosition(op.mul(Scaling.NOMINAL,5))
     self.sliderScaling.setSingleStep(Scaling.NOMINAL)
     self.sliderScaling.setPageStep(op.mul(Scaling.NOMINAL,5))
-    self.sliderScaling.setTickPosition(QSlider.TicksBelow)
+    self.sliderScaling.setTickPosition(QtWidgets.QSlider.TicksBelow)
     self.sliderScaling.setTickInterval(op.mul(Scaling.NOMINAL,5))
     self.sliderScaling.actionTriggered.connect(self.checkActionScaling)
     self.sliderScaling.sliderReleased.connect(self.snapSliderScaling)
     # image placeholders
-    self.dispImg = qt.QLabel()
+    self.dispImg = QtWidgets.QLabel()
     # indicators
-    self.leftFileName = qt.QLabel(self)
+    self.leftFileName = QtWidgets.QLabel(self)
     self.leftFileName.setText(literals["NO_IMG_LIT"])
-    self.rightFileName = qt.QLabel(self)
+    self.rightFileName = QtWidgets.QLabel(self)
     self.rightFileName.setText(literals["NO_IMG_LIT"])
-    self.dispVal = qt.QLabel(self)
+    self.dispVal = QtWidgets.QLabel(self)
     self.dispVal.setText(literals["DISPARITIES_LIT"] + str(self.disparities))
-    self.kernelVal = qt.QLabel(self)
+    self.kernelVal = QtWidgets.QLabel(self)
     self.kernelVal.setText(literals["KERNEL_LIT"] + str(self.kernel))
-    self.opacityVal = qt.QLabel(self)
+    self.opacityVal = QtWidgets.QLabel(self)
     self.opacityVal.setText(literals["OPACITY_LIT"] + str(op.truediv(self.opacity,Opacity.MAX)))
-    self.scalingVal = qt.QLabel(self)
+    self.scalingVal = QtWidgets.QLabel(self)
     self.scalingVal.setText(literals["SCALING_LIT"] + str(self.scalingFactor))
-    self.guiVersion = qt.QLabel(self)
+    self.guiVersion = QtWidgets.QLabel(self)
     self.guiVersion.setText(GUI_VERSION)
-    self.guiVersion.setAlignment(Qt.AlignRight)
+    self.guiVersion.setAlignment(QtCore.Qt.AlignRight)
     # specify window layout
     layout.addWidget(self.leftFileName)
     layout.addWidget(self.getLeftFile)
@@ -194,8 +193,8 @@ class MainWindow(QMainWindow):
   # ------------------------------------------
   # DISPARITY slider actions
   def checkActionDisp(self, action):
-    if op.eq(action,qt.QSlider.SliderSingleStepAdd) or op.eq(action,qt.QSlider.SliderSingleStepSub) or \
-       op.eq(action,qt.QSlider.SliderPageStepAdd) or op.eq(action,qt.QSlider.SliderPageStepSub):
+    if op.eq(action,QtWidgets.QSlider.SliderSingleStepAdd) or op.eq(action,QtWidgets.QSlider.SliderSingleStepSub) or \
+       op.eq(action,QtWidgets.QSlider.SliderPageStepAdd) or op.eq(action,QtWidgets.QSlider.SliderPageStepSub):
       self.sliderDisparities.setValue(self.sliderDisparities.sliderPosition())
       self.disparities = self.sliderDisparities.value()
       self.dispVal.setText(literals["DISPARITIES_LIT"] + str(self.disparities))
@@ -210,8 +209,8 @@ class MainWindow(QMainWindow):
   # ------------------------------------------
   # KERNEL slider actions
   def checkActionKernel(self, action):
-    if op.eq(action,qt.QSlider.SliderSingleStepAdd) or op.eq(action,qt.QSlider.SliderSingleStepSub) or \
-       op.eq(action,qt.QSlider.SliderPageStepAdd) or op.eq(action,qt.QSlider.SliderPageStepSub):
+    if op.eq(action,QtWidgets.QSlider.SliderSingleStepAdd) or op.eq(action,QtWidgets.QSlider.SliderSingleStepSub) or \
+       op.eq(action,QtWidgets.QSlider.SliderPageStepAdd) or op.eq(action,QtWidgets.QSlider.SliderPageStepSub):
       self.sliderKernel.setValue(self.sliderKernel.sliderPosition())
       self.kernel = self.sliderKernel.value()
       self.kernelVal.setText(literals["KERNEL_LIT"] + str(self.kernel))
@@ -227,8 +226,8 @@ class MainWindow(QMainWindow):
   # ------------------------------------------
   # OPACITY slider actions
   def checkActionOpacity(self, action):
-    if op.eq(action,qt.QSlider.SliderSingleStepAdd) or op.eq(action,qt.QSlider.SliderSingleStepSub) or \
-       op.eq(action,qt.QSlider.SliderPageStepAdd) or op.eq(action,qt.QSlider.SliderPageStepSub):
+    if op.eq(action,QtWidgets.QSlider.SliderSingleStepAdd) or op.eq(action,QtWidgets.QSlider.SliderSingleStepSub) or \
+       op.eq(action,QtWidgets.QSlider.SliderPageStepAdd) or op.eq(action,QtWidgets.QSlider.SliderPageStepSub):
       self.sliderOpacity.setValue(self.sliderOpacity.sliderPosition())
       self.opacity = self.sliderOpacity.value()
       self.opacityVal.setText(literals["OPACITY_LIT"] + str(op.truediv(self.opacity,Opacity.MAX)))
@@ -244,8 +243,8 @@ class MainWindow(QMainWindow):
   # ------------------------------------------
   # SCALING slider actions
   def checkActionScaling(self, action):
-    if op.eq(action,qt.QSlider.SliderSingleStepAdd) or op.eq(action,qt.QSlider.SliderSingleStepSub) or \
-       op.eq(action,qt.QSlider.SliderPageStepAdd) or op.eq(action,qt.QSlider.SliderPageStepSub):
+    if op.eq(action,QtWidgets.QSlider.SliderSingleStepAdd) or op.eq(action,QtWidgets.QSlider.SliderSingleStepSub) or \
+       op.eq(action,QtWidgets.QSlider.SliderPageStepAdd) or op.eq(action,QtWidgets.QSlider.SliderPageStepSub):
       self.sliderScaling.setValue(self.sliderScaling.sliderPosition())
       self.scalingFactor = self.sliderScaling.value()
       self.scalingVal.setText(literals["SCALING_LIT"] + str(self.scalingFactor))
@@ -285,34 +284,34 @@ class MainWindow(QMainWindow):
     # convert opencv image to qt image
     bytesPerLine = op.mul(cvImgDisp.shape[Dimension.WIDTH],1)
     height, width = r_cvImgL.shape
-    qImgL = qt.QImage(r_cvImgL.data, width, height, bytesPerLine, QImage.Format_Grayscale8)
+    qImgL = QtGui.QImage(r_cvImgL.data, width, height, bytesPerLine, QtGui.QImage.Format_Grayscale8)
     height, width = cvImgDisp.shape
-    qImgDisp = qt.QImage(cvImgDisp.data, width, height, bytesPerLine, QImage.Format_Grayscale8)
+    qImgDisp = QtGui.QImage(cvImgDisp.data, width, height, bytesPerLine, QtGui.QImage.Format_Grayscale8)
     # convert qt image to qt pixmap
-    qPmapL = qt.QPixmap(qImgL)
-    qPmapOverlay = qt.QPixmap(qImgDisp)
+    qPmapL = QtGui.QPixmap(qImgL)
+    qPmapOverlay = QtGui.QPixmap(qImgDisp)
     # overlay images
-    painter = qt.QPainter(qPmapOverlay)
+    painter = QtGui.QPainter(qPmapOverlay)
     painter.setOpacity(op.truediv(self.opacity,Opacity.MAX))
-    painter.drawPixmap(qt.QPoint(), qPmapL)
+    painter.drawPixmap(QtCore.QPoint(), qPmapL)
     painter.end()
     # render GUI image
     self.dispImg.setPixmap(qPmapOverlay)
   # ------------------------------------------
   # TODO: consolidate file picking mechanism
   def findLFile(self):
-    options = qt.QFileDialog.Options()
-    options |= qt.QFileDialog.DontUseNativeDialog
-    fileName, _ = qt.QFileDialog.getOpenFileName(self,"Select Left Photo", "","Images (*.png *.jpg)", options=options)
+    options = QtWidgets.QFileDialog.Options()
+    options |= QtWidgets.QFileDialog.DontUseNativeDialog
+    fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self,"Select Left Photo", "","Images (*.png *.jpg)", options=options)
     if fileName:
       self.photos[Photo.LEFT] = fileName
       self.leftFileName.setText(self.photos[Photo.LEFT])
       self.drawDispImg()
 
   def findRFile(self):
-    options = qt.QFileDialog.Options()
-    options |= qt.QFileDialog.DontUseNativeDialog
-    fileName, _ = qt.QFileDialog.getOpenFileName(self,"Select Right Photo", "","Images (*.png *.jpg)",options=options)
+    options = QtWidgets.QFileDialog.Options()
+    options |= QtWidgets.QFileDialog.DontUseNativeDialog
+    fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self,"Select Right Photo", "","Images (*.png *.jpg)",options=options)
     if fileName:
       self.photos[Photo.RIGHT] = fileName
       self.rightFileName.setText(self.photos[Photo.RIGHT])
@@ -320,7 +319,7 @@ class MainWindow(QMainWindow):
   # ------------------------------------------
 
 if __name__ == '__main__':
-  app = qt.QApplication(sys.argv)
+  app = QtWidgets.QApplication(sys.argv)
   mainwindow = MainWindow()
   mainwindow.show()
   app.exec_()
