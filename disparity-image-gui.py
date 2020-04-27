@@ -92,7 +92,7 @@ class MainWindow(QtWidgets.QMainWindow):
     self.disparities = op.mul(Disparities.NOMINAL,4)    # number of disparities; used by opencv methods
     self.kernel = op.mul(Kernel.MIN,3)                  # block/kernel size; used by opencv methods
     self.opacity = op.truediv(Opacity.MAX,2)            # opacity of original image shown in GUI
-    self.scalingFactor = op.mul(Scaling.NOMINAL,5)      # factor to scale the orignal image(s) by
+    self.scalingFactor = op.mul(Scaling.MIN,1)          # factor to scale the orignal image(s) by
     self.photos = {}                                    # container for photo filepaths
 
     QtWidgets.QMainWindow.__init__(self)
@@ -126,7 +126,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     self.sliderKernel = QtWidgets.QSlider(QtCore.Qt.Horizontal)
     self.sliderKernel.setRange(Kernel.MIN,Kernel.MAX)
-    self.sliderKernel.setSliderPosition(op.mul(Kernel.MIN,3))
+    self.sliderKernel.setSliderPosition(self.kernel)
     self.sliderKernel.setSingleStep(Kernel.NOMINAL)
     self.sliderKernel.setPageStep(op.mul(Kernel.NOMINAL,10))
     self.sliderKernel.setTickPosition(QtWidgets.QSlider.TicksBelow)
@@ -136,7 +136,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     self.sliderOpacity = QtWidgets.QSlider(QtCore.Qt.Horizontal)
     self.sliderOpacity.setRange(Opacity.MIN,Opacity.MAX)
-    self.sliderOpacity.setSliderPosition(op.truediv(Opacity.MAX,2))
+    self.sliderOpacity.setSliderPosition(self.opacity)
     self.sliderOpacity.setSingleStep(Opacity.NOMINAL)
     self.sliderOpacity.setPageStep(op.mul(Opacity.NOMINAL,5))
     self.sliderOpacity.setTickPosition(QtWidgets.QSlider.TicksBelow)
@@ -146,7 +146,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     self.sliderScaling = QtWidgets.QSlider(QtCore.Qt.Horizontal)
     self.sliderScaling.setRange(Scaling.MIN,Scaling.MAX)
-    self.sliderScaling.setSliderPosition(op.mul(Scaling.NOMINAL,5))
+    self.sliderScaling.setSliderPosition(self.scalingFactor)
     self.sliderScaling.setSingleStep(Scaling.NOMINAL)
     self.sliderScaling.setPageStep(op.mul(Scaling.NOMINAL,5))
     self.sliderScaling.setTickPosition(QtWidgets.QSlider.TicksBelow)
