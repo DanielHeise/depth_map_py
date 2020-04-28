@@ -26,8 +26,6 @@
 # --------------------------------
 #  v0.0.2:
 #    - kernel size now bounded by image size[DONE]
-#    - consolidated image file picking code[TODO]
-#    - minor code clean up[TODO]
 #    - minor bug fixes[DONE]
 #      -- disparities slider starting at 64, should be 16[DONE]
 #      -- program crash when scaling was set to 100 using the mouse drag[DONE]
@@ -39,6 +37,16 @@
 #    - resize window as image shrinks
 #  v0.0.0:
 #    - initial deployment
+# --------------------------------
+#  FUTURE WORK
+#   major
+#    - implemented rectification previews[TODO]
+#    - changed the layout style from vbox to grid[TODO]
+#   minor
+#    - increased window size at start[TODO]
+#    - minor code clean up[TODO]
+#    - consolidated image file picking code[TODO]
+#    - implemented initial tesets[TODO]
 # --------------------------------
 import sys
 import math
@@ -93,6 +101,7 @@ literals = {
   "WARN_KERNEL_SIZE_LIT":  "Kernel size exceeds image Height or Width. Reduce the kernel size."
 }
 
+# main window class
 class MainWindow(QtWidgets.QMainWindow):
   def __init__(self):
     self.disparities = op.mul(Disparities.NOMINAL,4)    # number of disparities; used by opencv methods
@@ -104,7 +113,6 @@ class MainWindow(QtWidgets.QMainWindow):
     QtWidgets.QMainWindow.__init__(self)
     # window prep - TODO: change from VBox to Grid layout
     self.setWindowIcon(self.style().standardIcon(QtWidgets.QStyle.SP_TitleBarMenuButton))
-    #self.setGeometry(300,100,300,200)
     self.setWindowTitle(literals["WINDOW_TITLE_LIT"])
     mainWidget = QtWidgets.QWidget()
     layout = QtWidgets.QVBoxLayout()
