@@ -25,7 +25,7 @@
 #  CHANGE LOG
 # --------------------------------
 #  v0.0.2:
-#    - kernel size now bounded by image size[TODO]
+#    - kernel size now bounded by image size[DONE]
 #    - consolidated image file picking code[TODO]
 #    - minor code clean up[TODO]
 #    - minor bug fixes[DONE]
@@ -52,6 +52,9 @@ from PyQt5 import QtGui
 
 # enums
 class Dimension(enum.IntEnum):
+  WIDTH = 0
+  HEIGHT = 1
+class Shape(enum.IntEnum):
   HEIGHT = 0
   WIDTH = 1
 class Kernel(enum.IntEnum):
@@ -75,17 +78,20 @@ class Scaling(enum.IntEnum):
   MAX = 100
 
 # constants
-literals = {
-  "DISPARITIES_LIT":    "Disparities: ",
-  "KERNEL_LIT":	        "Kernel Size: ",
-  "OPACITY_LIT":        "Opacity: ",
-  "WINDOW_TITLE_LIT":   "Disparity Image (GUI)",
-  "PICK_LT_IMG_LIT":    "Choose Left Image",
-  "PICK_RT_IMG_LIT":    "Choose Right Image",
-  "NO_IMG_LIT":         "No image chosen",
-  "SCALING_LIT":        "Scale Factor: "
-}
 GUI_VERSION = "v0.0.2.a"
+
+literals = {
+  "DISPARITIES_LIT":       "Disparities: ",
+  "KERNEL_LIT":            "Kernel Size: ",
+  "OPACITY_LIT":           "Opacity: ",
+  "WINDOW_TITLE_LIT":      "Disparity Image (GUI)",
+  "PICK_LT_IMG_LIT":       "Choose Left Image",
+  "PICK_RT_IMG_LIT":       "Choose Right Image",
+  "NO_IMG_LIT":            "No image chosen",
+  "SCALING_LIT":           "Scale Factor: ",
+  "IMG_NO_UPDATE_LIT":     "IMAGE NOT UPDATED",
+  "WARN_KERNEL_SIZE_LIT":  "Kernel size exceeds image Height or Width. Reduce the kernel size."
+}
 
 class MainWindow(QtWidgets.QMainWindow):
   def __init__(self):
@@ -93,7 +99,7 @@ class MainWindow(QtWidgets.QMainWindow):
     self.kernel = op.mul(Kernel.MIN,3)                  # block/kernel size; used by opencv methods
     self.opacity = op.truediv(Opacity.MAX,2)            # opacity of original image shown in GUI
     self.scalingFactor = op.mul(Scaling.MIN,1)          # factor to scale the orignal image(s) by
-    self.photos = {}                                    # container for photo filepaths
+    self.files = {}                                     # container for photo filepaths
 
     QtWidgets.QMainWindow.__init__(self)
     # window prep - TODO: change from VBox to Grid layout
@@ -188,7 +194,7 @@ class MainWindow(QtWidgets.QMainWindow):
     layout.addWidget(self.guiVersion)
     mainWidget.setLayout(layout)
     self.setCentralWidget(mainWidget)
-    # show initial photos
+    # show initial disparity image
     self.drawDispImg()
   # ------------------------------------------
   # DISPARITY slider actions
@@ -262,27 +268,31 @@ class MainWindow(QtWidgets.QMainWindow):
   # render the disparity image
   def drawDispImg(self):
     # ensure two images have been chosen before continuing
-    if not self.photos or op.lt(len(self.photos),2):
+    if not self.files or op.lt(len(self.files),2):
       return
     # read in images
-    cvImgL = cv.imread(self.photos[Photo.LEFT],cv.IMREAD_GRAYSCALE)
-    cvImgR = cv.imread(self.photos[Photo.RIGHT],cv.IMREAD_GRAYSCALE)
+    cvImgL = cv.imread(self.files[Photo.LEFT],cv.IMREAD_GRAYSCALE)
+    cvImgR = cv.imread(self.files[Photo.RIGHT],cv.IMREAD_GRAYSCALE)
     # find smaller image of the two
-    if op.lt(cvImgL.shape[Dimension.WIDTH],cvImgR.shape[Dimension.WIDTH]):
-      dim = (int(op.mul(cvImgL.shape[Dimension.WIDTH],op.truediv(self.scalingFactor,100))), \
-             int(op.mul(cvImgL.shape[Dimension.HEIGHT],op.truediv(self.scalingFactor,100))))
+    if op.lt(cvImgL.shape[Shape.WIDTH],cvImgR.shape[Shape.WIDTH]):
+      dim = (int(op.mul(cvImgL.shape[Shape.WIDTH],op.truediv(self.scalingFactor,100))), \
+             int(op.mul(cvImgL.shape[Shape.HEIGHT],op.truediv(self.scalingFactor,100))))
     else:
-      dim = (int(op.mul(cvImgR.shape[Dimension.WIDTH],op.truediv(self.scalingFactor,100))), \
-             int(op.mul(cvImgR.shape[Dimension.HEIGHT],op.truediv(self.scalingFactor,100))))
+      dim = (int(op.mul(cvImgR.shape[Shape.WIDTH],op.truediv(self.scalingFactor,100))), \
+             int(op.mul(cvImgR.shape[Shape.HEIGHT],op.truediv(self.scalingFactor,100))))
     # resize images
     r_cvImgL = cv.resize(cvImgL, dim, cv.INTER_AREA)
     r_cvImgR = cv.resize(cvImgR, dim, cv.INTER_AREA)
     # create disparity image - must be 8bit format to properly render 8bit grayscale qimage
-    # TODO: programs crashes if Kernel.value is larger than image width or height
+    if op.gt(self.sliderKernel.value(),dim[Dimension.HEIGHT]) or \
+       op.gt(self.sliderKernel.value(),dim[Dimension.WIDTH]):
+         # warn user of kernel size and do not redraw
+         self.showWarning(literals["IMG_NO_UPDATE_LIT"],literals["WARN_KERNEL_SIZE_LIT"])
+         return
     stereoObj = cv.StereoBM_create(self.disparities, self.kernel)
     cvImgDisp = np.uint8(stereoObj.compute(r_cvImgL,r_cvImgR))
     # convert opencv image to qt image
-    bytesPerLine = op.mul(cvImgDisp.shape[Dimension.WIDTH],1)
+    bytesPerLine = op.mul(cvImgDisp.shape[Shape.WIDTH],1)
     height, width = r_cvImgL.shape
     qImgL = QtGui.QImage(r_cvImgL.data, width, height, bytesPerLine, QtGui.QImage.Format_Grayscale8)
     height, width = cvImgDisp.shape
@@ -304,8 +314,8 @@ class MainWindow(QtWidgets.QMainWindow):
     options |= QtWidgets.QFileDialog.DontUseNativeDialog
     fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self,"Select Left Photo", "","Images (*.png *.jpg)", options=options)
     if fileName:
-      self.photos[Photo.LEFT] = fileName
-      self.leftFileName.setText(self.photos[Photo.LEFT])
+      self.files[Photo.LEFT] = fileName
+      self.leftFileName.setText(self.files[Photo.LEFT])
       self.drawDispImg()
 
   def findRFile(self):
@@ -313,9 +323,13 @@ class MainWindow(QtWidgets.QMainWindow):
     options |= QtWidgets.QFileDialog.DontUseNativeDialog
     fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self,"Select Right Photo", "","Images (*.png *.jpg)",options=options)
     if fileName:
-      self.photos[Photo.RIGHT] = fileName
-      self.rightFileName.setText(self.photos[Photo.RIGHT])
+      self.files[Photo.RIGHT] = fileName
+      self.rightFileName.setText(self.files[Photo.RIGHT])
       self.drawDispImg()
+  # ------------------------------------------
+  def showWarning(self,title,msg):
+    msgbox = QtWidgets.QMessageBox
+    msgbox.warning(self,title,msg)
   # ------------------------------------------
 
 if __name__ == '__main__':
