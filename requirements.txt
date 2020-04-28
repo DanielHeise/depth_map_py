@@ -1,0 +1,4 @@
+#python3<=3.7.5
+numpy<=1.18.3
+opencv-python<=4.2.0.34
+PyQt5<=5.9.2
