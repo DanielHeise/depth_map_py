@@ -86,7 +86,7 @@ class Scaling(enum.IntEnum):
   MAX = 100
 
 # constants
-GUI_VERSION = "v0.0.2.a"
+GUI_VERSION = "v0.0.2"
 
 literals = {
   "DISPARITIES_LIT":       "Disparities: ",
